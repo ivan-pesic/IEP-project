@@ -15,7 +15,7 @@ INVALID_CREDENTIALS = "Invalid credentials."
 UNKNOWN_USER = "Unknown user."
 
 CUSTOMER = 2
-MANAGER = 3
+STOREKEEPER = 3
 
 application = Flask(__name__)
 application.config.from_object(Configuration)
@@ -72,7 +72,7 @@ def register():
     database.session.add(user)
     database.session.commit()
 
-    roleId = CUSTOMER if isCustomer else MANAGER
+    roleId = CUSTOMER if isCustomer else STOREKEEPER
 
     userRole = UserRole(userId=user.id, roleId=roleId)
     database.session.add(userRole)
@@ -137,7 +137,7 @@ def refresh():
         "roles": refreshClaims["roles"]
     }
 
-    return jsonify(accessToken=create_access_token(identity=identity), additional_claims=additionalClaims)
+    return jsonify(accessToken=create_access_token(identity=identity, additional_claims=additionalClaims))
 
 
 @application.route("/delete", methods=["POST"])
@@ -152,7 +152,7 @@ def delete():
 
     if emailEmpty:
         return jsonify({MSG: FIELD_MISSING.format("email")}), 400
-    if checkIfEmailIsValid(email):
+    if not checkIfEmailIsValid(email):
         return jsonify({MSG: INVALID_FIELD.format("email")}), 400
 
     user = User.query.filter(User.email == email).first()
@@ -160,9 +160,7 @@ def delete():
     if user is None:
         return jsonify({MSG: UNKNOWN_USER}), 400
 
-    UserRole.query.filter(UserRole.id == user.id).delete()
-    User.query.filter(User.email == email).delete()
-
+    database.session.delete(user)
     database.session.commit()
 
     return Response(status=200)
