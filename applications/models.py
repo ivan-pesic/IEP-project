@@ -25,6 +25,16 @@ class Category(database.Model):
         return self.name
 
 
+class ProductOrder(database.Model):
+    __tablename__ = "productorder"
+
+    id = database.Column(database.Integer, primary_key=True)
+    productId = database.Column(database.Integer, database.ForeignKey("products.id"), nullable=False)
+    orderId = database.Column(database.Integer, database.ForeignKey("orders.id"), nullable=False)
+    requested = database.Column(database.Integer, nullable=False)
+    received = database.Column(database.Integer, nullable=False)
+    price = database.Column(database.Float, nullable=False)
+
 class Product(database.Model):
     __tablename__ = "products"
 
@@ -34,6 +44,7 @@ class Product(database.Model):
     available = database.Column(database.Integer, nullable=False)
 
     categories = database.relationship("Category", secondary=ProductCategory.__table__, back_populates="products")
+    orders = database.relationship("Order", secondary=ProductOrder.__table__, back_populates="products")
 
 class Order(database.Model):
     __tablename__ = "orders"
@@ -44,3 +55,4 @@ class Order(database.Model):
     timestamp = database.Column(database.DateTime, nullable=False, default=datetime.datetime.now())
     email = database.Column(database.String(256), nullable=False)
 
+    products = database.relationship("Product", secondary=ProductOrder.__table__, back_populates="orders")

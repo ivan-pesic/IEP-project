@@ -3,7 +3,7 @@ from collections import Counter
 from redis import Redis
 
 from applications.configuration import Configuration
-from applications.models import database, Product, Category, ProductCategory
+from applications.models import database, Product, Category, ProductCategory, ProductOrder
 from datetime import datetime
 from sqlalchemy import and_, or_
 from flask import Flask
@@ -16,10 +16,13 @@ application = Flask(__name__)
 application.config.from_object(Configuration)
 database.init_app(application)
 
+
 def categoriesValidForProduct(product, categories):
-    dbCategories = Category.query.with_entities(Category.name).join(ProductCategory). \
-        filter_by(productId=product.id).all()
-    categoriesMap = Counter(dbCategories)
+    dbCategories = Category.query.join(ProductCategory).filter_by(productId=product.id).all()
+    dbCatsList = []
+    for category in dbCategories:
+        dbCatsList.append(category.name)
+    categoriesMap = Counter(dbCatsList)
     for category in categories:
         if category not in categoriesMap:
             print(
@@ -28,11 +31,44 @@ def categoriesValidForProduct(product, categories):
             return False
     return True
 
+
+def statusNeedsUpdate(order):
+    productOrders = ProductOrder.query.filter(ProductOrder.orderId == order.id).all()
+
+    isFinished = 0
+    i = 0
+    for productOrder in productOrders:
+        if productOrder.received == productOrder.requested:
+            isFinished += 1
+        i += 1
+
+    return i == isFinished
+
+
+def checkForOrders(product):
+    for order in product.orders:
+        if order.status == "COMPLETE":
+            continue
+        productOrder = ProductOrder.query.filter(
+            and_(ProductOrder.productId == product.id, ProductOrder.orderId == order.id)).first()
+        remainingToReceive = productOrder.requested - productOrder.received
+        if product.available >= remainingToReceive:
+            product.available -= remainingToReceive
+            productOrder.received = productOrder.requested
+            if statusNeedsUpdate(order):
+                order.status = "COMPLETE"
+        else:
+            productOrder.received += product.available
+            product.available = 0
+
+        database.session.commit()
+
+
 while True:
     try:
-        with Redis(host=Configuration.REDIS_HOST) as redis:
-            print("Daemon up and running.")
-            while True:
+        print("Daemon up and running.")
+        while True:
+            with Redis(host=Configuration.REDIS_HOST) as redis:
                 with application.app_context():
                     bytesStream = redis.blpop(Configuration.REDIS_PRODUCTS_LIST)[1]
                     print("Message received.")
@@ -84,7 +120,8 @@ while True:
                         database.session.commit()
                         print("Updating product: name: {}, price: {}, quantity: {}, categories: {} successful".format(
                             product.name, product.price, product.available, product.categories))
-                        # TODO: implement checking of orders
+                        # when existing product is updated, it should be checked whether some order has to be updated
+                        checkForOrders(product)
 
 
     except Exception as error:
