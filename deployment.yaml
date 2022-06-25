@@ -1,6 +1,5 @@
 version: '2.1' # this version works on ubuntu, maybe needs to be changed to '3' on windows
 
-
 services:
   adminer:
     image: adminer

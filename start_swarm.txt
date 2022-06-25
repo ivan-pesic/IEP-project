@@ -1,0 +1,24 @@
+docker swarm init --advertise-addr 127.0.0.1
+docker stack deploy --compose-file stack.yaml application_stack
+docker service ls
+docker swarm leave --force
+
+sudo systemctl restart docker.service
+
+delete from userrole;
+delete from users;
+alter table userrole auto_increment = 0;
+alter table users auto_increment = 0;
+insert into users (email, password, forename, surname) values ('admin@admin.com', '1', 'admin', 'admin');
+insert into userrole (userId, roleId) values('1', '1');
+
+delete from productorder;
+delete from productcategory;
+delete from products;
+delete from categories;
+delete from orders;
+alter table productorder auto_increment = 0;
+alter table productcategory auto_increment = 0;
+alter table products auto_increment = 0;
+alter table orders auto_increment = 0;
+alter table categories auto_increment = 0;

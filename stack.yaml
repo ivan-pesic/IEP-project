@@ -1,5 +1,4 @@
-version: '3' # this version works on ubuntu, maybe needs to be changed to '3' on windows
-
+version: '3'
 
 services:
   adminer:
