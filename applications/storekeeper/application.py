@@ -60,7 +60,10 @@ def updateProducts():
 
     return Response(status=200)
 
+@application.route("/", methods=["GET"])
+def index():
+    return Response("Storekeeper container up and running.")
 
 if (__name__ == "__main__"):
     database.init_app(application)
-    application.run(debug=True, port=5001)
+    application.run(debug=True, host="0.0.0.0", port=5001)

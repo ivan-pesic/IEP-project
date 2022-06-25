@@ -61,7 +61,10 @@ def categoryStatistics():
 
     return jsonify({"statistics": [x[0] for x in sorted(dict.items(), key=lambda x: (-x[1], x[0]))]})
 
+@application.route("/", methods=["GET"])
+def index():
+    return Response("Admin container up and running.")
 
 if __name__ == "__main__":
     database.init_app(application)
-    application.run(debug=True, port=5003)
+    application.run(debug=True, host="0.0.0.0", port=5003)

@@ -2,6 +2,17 @@ version: '2.1' # this version works on ubuntu, maybe needs to be changed to '3' 
 
 
 services:
+  adminer:
+    image: adminer
+    ports:
+      - 8080:8080
+    networks:
+      - admin
+      - authnework
+      - daemon
+      - customer
+      - storekeeper
+
   authenticationDB:
     image: mysql
     environment:
@@ -10,10 +21,11 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 10s
       retries: 10
-    volumes:
-      - authdbdata:/var/lib/mysql
+#    volumes:
+#      - authdbdata:/var/lib/mysql
     networks:
       - authnework
+
   authenticationDBMigration:
     image: authenticationdbmigration
     environment:
@@ -23,6 +35,10 @@ services:
         condition: service_healthy
     networks:
       - authnework
+    build:
+      context: .
+      dockerfile: authenticationDBMigration.dockerfile
+
   authentication:
     image: authentication
     environment:
@@ -33,9 +49,109 @@ services:
       - 5002:5002
     networks:
       - authnework
+    build:
+      context: .
+      dockerfile: authentication.dockerfile
 
-volumes:
-  authdbdata:
+  storeDB:
+    image: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      timeout: 10s
+      retries: 10
+#    volumes:
+#      - storedbdata:/var/lib/mysql
+    networks:
+      - customer
+      - daemon
+      - admin
+
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+    networks:
+      - storekeeper
+      - daemon
+
+  storeDBMigration:
+    image: storedbmigration
+    environment:
+      - DATABASE_URL=storeDB
+    depends_on:
+      storeDB:
+        condition: service_healthy
+    networks:
+      - customer
+      - daemon
+      - admin
+    build:
+      context: .
+      dockerfile: storeDBMigration.dockerfile
+
+  customer:
+    image: customer
+    environment:
+      - DATABASE_URL=storeDB
+    depends_on:
+      - storeDBMigration
+    ports:
+      - 5000:5000
+    networks:
+      - customer
+    build:
+      context: .
+      dockerfile: customer.dockerfile
+
+  storekeeper:
+    image: storekeeper
+    environment:
+      - DATABASE_URL=storeDB
+    depends_on:
+      - storeDBMigration
+    ports:
+      - 5001:5001
+    networks:
+      - storekeeper
+    build:
+      context: .
+      dockerfile: storekeeper.dockerfile
+
+  admin:
+    image: admin
+    environment:
+      - DATABASE_URL=storeDB
+    depends_on:
+      - storeDBMigration
+    ports:
+      - 5003:5003
+    networks:
+      - admin
+    build:
+      context: .
+      dockerfile: admin.dockerfile
+
+  daemon:
+    image: daemon
+    environment:
+      - DATABASE_URL=storeDB
+    depends_on:
+      - storeDBMigration
+    networks:
+      - daemon
+    build:
+      context: .
+      dockerfile: daemon.dockerfile
+
+#volumes:
+#  authdbdata:
+#  storedbdata:
 
 networks:
   authnework:
+  customer:
+  storekeeper:
+  daemon:
+  admin:
