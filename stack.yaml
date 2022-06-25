@@ -1,4 +1,4 @@
-version: '2.1' # this version works on ubuntu, maybe needs to be changed to '3' on windows
+version: '3' # this version works on ubuntu, maybe needs to be changed to '3' on windows
 
 
 services:
@@ -30,9 +30,6 @@ services:
     image: authenticationdbmigration
     environment:
       - DATABASE_URL=authenticationDB
-    depends_on:
-      authenticationDB:
-        condition: service_healthy
     networks:
       - authnework
     build:
@@ -43,8 +40,6 @@ services:
     image: authentication
     environment:
       - DATABASE_URL=authenticationDB
-    depends_on:
-      - authenticationDBMigration
     ports:
       - 5002:5002
     networks:
@@ -70,8 +65,6 @@ services:
 
   redis:
     image: redis
-    ports:
-      - 6379:6379
     networks:
       - storekeeper
       - daemon
@@ -80,9 +73,6 @@ services:
     image: storedbmigration
     environment:
       - DATABASE_URL=storeDB
-    depends_on:
-      storeDB:
-        condition: service_healthy
     networks:
       - customer
       - daemon
@@ -95,8 +85,6 @@ services:
     image: customer
     environment:
       - DATABASE_URL=storeDB
-    depends_on:
-      - storeDBMigration
     ports:
       - 5000:5000
     networks:
@@ -104,13 +92,13 @@ services:
     build:
       context: .
       dockerfile: customer.dockerfile
+    deploy:
+      replicas: 3
 
   storekeeper:
     image: storekeeper
     environment:
       - DATABASE_URL=storeDB
-    depends_on:
-      - storeDBMigration
     ports:
       - 5001:5001
     networks:
@@ -118,13 +106,13 @@ services:
     build:
       context: .
       dockerfile: storekeeper.dockerfile
+    deploy:
+      replicas: 3
 
   admin:
     image: admin
     environment:
       - DATABASE_URL=storeDB
-    depends_on:
-      - storeDBMigration
     ports:
       - 5003:5003
     networks:
@@ -137,8 +125,6 @@ services:
     image: daemon
     environment:
       - DATABASE_URL=storeDB
-    depends_on:
-      - storeDBMigration
     networks:
       - daemon
     build:
@@ -151,7 +137,12 @@ volumes:
 
 networks:
   authnework:
+    driver: overlay
   customer:
+    driver: overlay
   storekeeper:
+    driver: overlay
   daemon:
+    driver: overlay
   admin:
+    driver: overlay

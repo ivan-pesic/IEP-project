@@ -9,30 +9,38 @@ application.config.from_object(Configuration)
 
 migrateObject = Migrate(application, database)
 
-if not database_exists(application.config["SQLALCHEMY_DATABASE_URI"]):
-    create_database(application.config["SQLALCHEMY_DATABASE_URI"])
+done = False
 
-database.init_app(application)
+while not done:
+    try:
+        if not database_exists(application.config["SQLALCHEMY_DATABASE_URI"]):
+            create_database(application.config["SQLALCHEMY_DATABASE_URI"])
 
-with application.app_context() as context:
-    init()
-    migrate(message="Production migration")
-    upgrade()
+        database.init_app(application)
 
-    adminRole = Role(name="admin")
-    customerRole = Role(name="customer")
-    storekeeperRole = Role(name="storekeeper")
+        with application.app_context() as context:
+            init()
+            migrate(message="Production migration")
+            upgrade()
 
-    database.session.add(adminRole)
-    database.session.commit()
-    database.session.add(customerRole)
-    database.session.commit()
-    database.session.add(storekeeperRole)
-    database.session.commit()
+            adminRole = Role(name="admin")
+            customerRole = Role(name="customer")
+            storekeeperRole = Role(name="storekeeper")
 
-    admin = User(forename="admin", surname="admin", email="admin@admin.com", password="1")
-    database.session.add(admin)
-    database.session.commit()
-    adminUserRole = UserRole(userId=admin.id, roleId=adminRole.id)
-    database.session.add(adminUserRole)
-    database.session.commit()
+            database.session.add(adminRole)
+            database.session.commit()
+            database.session.add(customerRole)
+            database.session.commit()
+            database.session.add(storekeeperRole)
+            database.session.commit()
+
+            admin = User(forename="admin", surname="admin", email="admin@admin.com", password="1")
+            database.session.add(admin)
+            database.session.commit()
+            adminUserRole = UserRole(userId=admin.id, roleId=adminRole.id)
+            database.session.add(adminUserRole)
+            database.session.commit()
+
+            done = True
+    except Exception as error:
+        print(error)
