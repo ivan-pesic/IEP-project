@@ -66,12 +66,12 @@ def checkForOrders(product):
 
 while True:
     try:
-        print("Daemon up and running.")
+        print("Daemon up and running.", flush=True)
         while True:
             with Redis(host=Configuration.REDIS_HOST) as redis:
                 with application.app_context():
                     bytesStream = redis.blpop(Configuration.REDIS_PRODUCTS_LIST)[1]
-                    print("Message received.")
+                    print("Message received.", flush=True)
                     line = bytesStream.decode("utf-8")
                     data = line.split(",")
 
@@ -85,7 +85,7 @@ while True:
                     # no product - create a new one
                     if product is None:
                         print("Making a new product: name: {}, price: {}, quantity: {}, categories: {}".format(
-                            productName, purchasePrice, quantity, categories))
+                            productName, purchasePrice, quantity, categories), flush=True)
                         product = Product(name=productName, price=purchasePrice, available=quantity)
                         database.session.add(product)
                         database.session.commit()
@@ -94,7 +94,7 @@ while True:
                             dbCategory = Category.query.filter(Category.name == category).first()
                             # category doesn't exist - create a new one
                             if dbCategory is None:
-                                print("Making a new category: {}".format(category))
+                                print("Making a new category: {}".format(category), flush=True)
                                 dbCategory = Category(name=category)
                                 database.session.add(dbCategory)
                                 database.session.commit()
@@ -106,7 +106,7 @@ while True:
                     # product exists - check categories first
                     else:
                         print("Updating existing product: name: {}, price: {}, quantity: {}, categories: {}".format(
-                            productName, purchasePrice, quantity, categories))
+                            productName, purchasePrice, quantity, categories), flush=True)
                         if not categoriesValidForProduct(product, categories):
                             continue
                         # categories valid - update product price and quantity
@@ -119,7 +119,7 @@ while True:
                         product.available = newQuantity
                         database.session.commit()
                         print("Updating product: name: {}, price: {}, quantity: {}, categories: {} successful".format(
-                            product.name, product.price, product.available, product.categories))
+                            product.name, product.price, product.available, product.categories), flush=True)
                         # when existing product is updated, it should be checked whether some order has to be updated
                         checkForOrders(product)
 
